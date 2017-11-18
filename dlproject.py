@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[2]:
+# In[1]:
 
 
 get_ipython().magic('matplotlib inline')
@@ -140,4 +140,127 @@ def save_predictions(filename, y):
     Dumps y into .npy file
     """
     np.save(filename, y)# Load the data
+
+
+# In[17]:
+
+
+bottle_neck_file = './bottle_neck/'
+label_file = './labels.txt'
+
+
+# In[114]:
+
+
+class bottle_neck_process(object):
+    def __init__(self, bottle_neck_file, label_file):
+        self.bottle_neck_file = bottle_neck_file
+        self.label_file = label_file
+        self.id2label, self.label2id = self.get_label_mapping(self.label_file)
+        self.val_inputs = None
+        self.val_labels = None
+        self.train_inputs = None
+        self.train_labels = None
+        self.train_number = None
+        self.split_data()
+        
+    # return: data_map: {label: matrix, label:matrix..}   label_map: {label: vector, label: vector...} 
+    def get_data(self):
+        data_map = {}
+        label_map = {}
+        data_number = {}
+        for i in self.id2label:
+            read_dir = bottle_neck_file + i
+            files = get_files(read_dir)
+            data_number[i] = len(files)
+
+            inputs = []
+            labels = []
+            for f in files:
+                inputs.append(np.load(f))
+                labels.append(self.label2id[i])
+            data_map[i] = np.reshape(np.asarray(inputs), (len(files), -1))
+            label_map[i] = np.reshape(np.asarray(labels), -1)
+
+        return data_map, label_map, data_number
+    
+    # split the data to training set and validation set. 80% to train, 20% to test(val)
+    # 
+    def split_data(self):      
+        data_map, label_map, data_number = self.get_data()
+
+        train_inputs = {}
+        train_labels = {}
+        train_number = {}
+        val_inputs = np.array([])
+        val_labels = np.array([])
+
+        dimen = None
+        total_train_number = 0
+        for i in self.id2label:
+            init = data_map[i]
+            label = label_map[i]
+            number = int(data_number[i] * 0.2)
+
+            index = np.random.choice(data_number[i], number, replace=False)
+            val_input = init[index, :]
+            val_label = label[index]
+            train_input = np.delete(init, index, axis = 0)
+            train_label = np.delete(label, index)
+
+            dimen = train_input.shape[1]
+            val_inputs = np.append(val_input, val_inputs.reshape(-1, dimen), axis = 0)
+            val_labels = np.append(val_label, val_labels, axis = 0)
+            train_inputs[i] = train_input
+            train_labels[i] = train_label
+            train_number[i] = train_input.shape[0]
+            total_train_number = total_train_number + train_input.shape[0]
+
+        val_inputs = np.reshape(np.asarray(val_inputs), (-1, dimen))
+        val_labels = np.reshape(np.asarray(val_labels), -1)
+        
+        self.val_inputs = val_inputs
+        self.val_labels = val_labels
+        self.train_inputs = train_inputs
+        self.train_labels = train_labels
+        self.train_number = train_number
+        self.total_train_number = total_train_number
+
+    def next_batch(self, mini_batch):
+        inputs = np.array([])
+        labels = np.array([])
+        
+        for i in self.id2label:
+            input_ = self.train_inputs[i]
+            label = self.train_labels[i]
+            num = int(self.train_number[i] / self.total_train_number * mini_batch)
+            dimen = input_.shape[1]
+            
+            index = np.random.choice(self.train_number[i], num, replace=True)
+            inputs_temp = input_[index, :]
+            labels_temp = label[index]
+            
+            inputs = np.append(inputs_temp, inputs.reshape(-1, dimen), axis = 0)
+            labels = np.append(labels_temp, labels, axis = 0)
+            
+        inputs = np.reshape(np.asarray(inputs), (-1, dimen))
+        labels = np.reshape(np.asarray(labels), -1)
+        
+        return inputs, labels
+        
+    
+    def get_label_mapping(self, label_file):
+        """
+        Returns mappings of label to index and index to label
+        The input file has list of labels, each on a separate line.
+        """
+        with open(label_file, 'r') as f:
+            id2label = f.readlines()
+            id2label = [l.strip() for l in id2label]
+        label2id = {}
+        count = 0
+        for label in id2label:
+            label2id[label] = count
+            count += 1
+        return id2label, label2id
 
