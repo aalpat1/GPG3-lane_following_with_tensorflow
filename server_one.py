@@ -1,9 +1,3 @@
-
-# coding: utf-8
-
-# In[5]:
-
-
 import socket               # Import socket module
 import time
 import sys  #Used for closing the running program
@@ -13,6 +7,7 @@ import tensorflow as tf
 import argparse
 import os
 import sys
+import scipy.misc
 
 charpre='p'
 accelerate=0
@@ -29,33 +24,36 @@ def run_inference(images, out_file, labels, model_file, sess, softmax_tensor, be
     if out_file:
         out_file = open(out_file, 'wb', 1)
 
-    for img in images:
-        if not tf.gfile.Exists(img):
-                tf.logging.fatal('File does not exist %s', img)
-                continue
-        image_data = tf.gfile.FastGFile(img, 'rb').read()
+#     for img in images:
+#     if not tf.gfile.Exists(img):
+#             tf.logging.fatal('File does not exist %s', img)
+#             continue
+#     image_data = tf.gfile.FastGFile(img, 'rb').read()
 
 
-        bottle_num = sess.run(before_logit,feed_dict = {input_name: image_data})
-        predictions = sess.run(softmax_tensor, feed_dict = {bottle_neck_name: bottle_num})
-        predictions = np.squeeze(predictions)
-        top_k = predictions.argsort()[-k:][::-1]  # Getting top k predictions
+    bottle_num = sess.run(before_logit,feed_dict = {input_name: images})
+    predictions = sess.run(softmax_tensor, feed_dict = {bottle_neck_name: bottle_num})
+    predictions = np.squeeze(predictions)
+    top_k = predictions.argsort()[-k:][::-1]  # Getting top k predictions
 
-        vals = []
-        for node_id in top_k:
-                human_string = labels[node_id]
-                score = predictions[node_id]
-                vals.append('%s=%.5f' % (human_string, score))
-        rec = "%s\t %s" % (img, ", ".join(vals))
-        if out_file:
-                out_file.write(rec)
-                out_file.write("\n")
-        else:
-                print(rec)    
-    if out_file:
-        print("Output stored to a file")
-        out_file.close()
+#     vals = []
+#     for node_id in top_k:
+#             human_string = labels[node_id]
+#             score = predictions[node_id]
+#             vals.append('%s=%.5f' % (human_string, score))
+#     rec = "%s\t %s" % (img, ", ".join(vals))
+#     if out_file:
+#             out_file.write(rec)
+#             out_file.write("\n")
+#     else:
+#             print(rec)    
+#     if out_file:
+#         print("Output stored to a file")
+#         out_file.close()
     return labels[top_k[0]]
+
+def get_image(imagename):
+    return scipy.misc.imread(imagename).reshape(1,480, 720, 3)/255
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Classify Image(s)')
@@ -74,7 +72,6 @@ if __name__ == '__main__':
                         
     with tf.Session() as sess:
         tf.saved_model.loader.load(sess, [tf.saved_model.tag_constants.TRAINING], save_model_file)
-        print('the model is load')
         softmax_tensor = sess.graph.get_tensor_by_name(softmax_tensor_name)
         before_logit = sess.graph.get_tensor_by_name(before_logit_name)
                     
@@ -94,8 +91,8 @@ if __name__ == '__main__':
             print("Done Receiving")
 
 
-            imagename='torecv.jpg'
-            images = [imagename]
+            imagename='./torecv.jpg'
+            images = get_image(imagename)
             # if a separate root directory given then make a new path
             if args['root']:
                     print("Input data from  : %s" % args['root'])
