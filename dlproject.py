@@ -145,8 +145,8 @@ def save_predictions(filename, y):
 # In[17]:
 
 
-bottle_neck_file = './bottle_neck/'
-label_file = './labels.txt'
+#bottle_neck_file = './bottle_neck3/'
+#label_file = './labels.txt'
 
 
 # In[114]:
@@ -157,12 +157,15 @@ class bottle_neck_process(object):
         self.bottle_neck_file = bottle_neck_file
         self.label_file = label_file
         self.id2label, self.label2id = self.get_label_mapping(self.label_file)
+        self.val_inputs_each = None
+        self.val_labels_each = None
         self.val_inputs = None
         self.val_labels = None
         self.train_inputs = None
         self.train_labels = None
         self.train_number = None
         self.split_data()
+        self.get_val_each()
         
     # return: data_map: {label: matrix, label:matrix..}   label_map: {label: vector, label: vector...} 
     def get_data(self):
@@ -170,15 +173,18 @@ class bottle_neck_process(object):
         label_map = {}
         data_number = {}
         for i in self.id2label:
-            read_dir = bottle_neck_file + i
+            read_dir = self.bottle_neck_file + i
             files = get_files(read_dir)
             data_number[i] = len(files)
-
+            print(read_dir)
+            print(len(files))
+            
             inputs = []
             labels = []
             for f in files:
                 inputs.append(np.load(f))
                 labels.append(self.label2id[i])
+            print('the lengeh of inputs is ' + str(len(inputs)))
             data_map[i] = np.reshape(np.asarray(inputs), (len(files), -1))
             label_map[i] = np.reshape(np.asarray(labels), -1)
 
@@ -264,3 +270,16 @@ class bottle_neck_process(object):
             count += 1
         return id2label, label2id
 
+    def get_val_each(self):
+        val_inputs_each = {}
+        val_labels_each = {}
+        for i in self.id2label:
+            num = self.label2id[i]
+            mask = (self.val_labels == num)
+            input_ = self.val_inputs[mask,:]
+            output_ = self.val_labels[mask]
+            val_inputs_each[i] = input_
+            val_labels_each[i] = output_
+            
+        self.val_inputs_each = val_inputs_each
+        self.val_labels_each = val_labels_each
