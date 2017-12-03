@@ -4,6 +4,7 @@ import numpy as np
 from tensorflow.contrib.framework.python.ops.variables import get_or_create_global_step
 from inception_resnet_v2 import inception_resnet_v2, inception_resnet_v2_arg_scope
 import matplotlib.image as mpimg
+import matplotlib
 from CNN_data_preprocess import get_label_mapping, get_files, bottle_neck_process
 slim = tf.contrib.slim
 
@@ -67,7 +68,7 @@ def build_graph():
 
 
 # extract the data before the fine tune layer
-def get_bottle_neck_data(sess, train_file, bottle_neck_file, label_file):
+def get_bottle_neck_data(sess, train_file, bottle_neck_file, label_file, , hsv = False):
     id2label, label2id = get_label_mapping(label_file)
     for i in id2label:
         read_dir = train_file + i
@@ -77,6 +78,8 @@ def get_bottle_neck_data(sess, train_file, bottle_neck_file, label_file):
         files = get_files(read_dir)
         for f in files:
             img=mpimg.imread(f).reshape(1,480,720,3) / 255
+            if(hsv):
+                img = matplotlib.colors.rgb_to_hsv(img)
             bottle = sess.run(before_logit, feed_dict={images:img})
             np.save(des_dir + f[7:],  bottle)
             print('save the bottle neck file ' + f)
