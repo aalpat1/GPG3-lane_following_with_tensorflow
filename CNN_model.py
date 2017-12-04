@@ -9,12 +9,14 @@ from CNN_data_preprocess import get_label_mapping, get_files, bottle_neck_proces
 slim = tf.contrib.slim
 
 
+
 checkpoint_file = './model_file/inception_resnet_v2_2016_08_30.ckpt'
 label_file = './labels.txt'
-train_file = './Data3/'
-bottle_neck_file = './middle_data/bottle_neck3/'
-save_model_file = './model_file/inception_resnet_v2_for3'
-last_layer_file = './middle_data/last_layer3/'
+train_file = './Data3_4/'
+bottle_neck_file = './middle_data/bottle_neck3_4/'
+save_model_file = './model_file/inception_resnet_v2_for3_4'
+last_layer_file = './middle_data/last_layer3_4/'
+
 
 
 def build_graph():
@@ -63,12 +65,13 @@ def build_graph():
     saver = tf.train.Saver(variables_to_restore)
     init = tf.global_variables_initializer()
     builder = tf.saved_model.builder.SavedModelBuilder(save_model_file)
-    
-    return images, labels, before_logit, bottle_neck, loss, accuracy, train_op, saver, init, builder
+
+    return images, labels, before_logit, bottle_neck,batch_norm2, loss, accuracy, train_op, saver, init, builder
+
 
 
 # extract the data before the fine tune layer
-def get_bottle_neck_data(sess, train_file, bottle_neck_file, label_file, , hsv = False):
+def get_bottle_neck_data(sess, before_logit, images, train_file, bottle_neck_file, label_file, hsv = False):
     id2label, label2id = get_label_mapping(label_file)
     for i in id2label:
         read_dir = train_file + i
@@ -81,12 +84,14 @@ def get_bottle_neck_data(sess, train_file, bottle_neck_file, label_file, , hsv =
             if(hsv):
                 img = matplotlib.colors.rgb_to_hsv(img)
             bottle = sess.run(before_logit, feed_dict={images:img})
-            np.save(des_dir + f[7:],  bottle)
+            np.save(des_dir + f[len(read_dir):],  bottle)
             print('save the bottle neck file ' + f)
             
 
 def get_last_layer(sess, bottle_neck_file, last_layer_file, label_file, bottle_neck, batch_norm2):
     id2label, label2id = get_label_mapping(label_file)
+    os.mkdir(last_layer_file)
+    print(last_layer_file)
     for i in id2label:
         read_dir = bottle_neck_file + i
         des_dir = last_layer_file + i + '/'
@@ -98,12 +103,12 @@ def get_last_layer(sess, bottle_neck_file, last_layer_file, label_file, bottle_n
             img=np.load(f)
             print(f)
             bottle = sess.run(batch_norm2, feed_dict={bottle_neck:img})
-            np.save(des_dir + f[17:],  bottle)
+            np.save(des_dir + f[len(read_dir):],  bottle)
             print('save the bottle neck file ' + f)
 
 
 def train_graph(sess, model_list):
-    images, labels, before_logit, bottle_neck, loss, accuracy, train_op, saver, init, builder = model_list
+    images, labels, before_logit, bottle_neck, batch_norm2, loss, accuracy, train_op, saver, init, builder = model_list
     
     sess.run(init)
     saver.restore(sess, checkpoint_file)
@@ -111,7 +116,7 @@ def train_graph(sess, model_list):
     # if there is no dir for the bottle data, then get the data first.
     if(os.path.isdir(bottle_neck_file) is not True):
         os.mkdir(bottle_neck_file)
-        get_bottle_neck_data(sess, train_file, bottle_neck_file, label_file)
+        get_bottle_neck_data(sess, before_logit, images, train_file, bottle_neck_file, label_file, hsv = False)
 
     # get training data from bottle_neck file, and train.
     bottle_neck_processor = bottle_neck_process(bottle_neck_file, label_file) 
@@ -143,6 +148,7 @@ def train_graph(sess, model_list):
                                          signature_def_map=None, assets_collection=None)
     
     builder.save()
+
 
 
 if __name__ == '__main__':
