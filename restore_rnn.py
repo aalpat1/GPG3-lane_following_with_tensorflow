@@ -1,6 +1,6 @@
 import tflearn
 import tensorflow as tf
-from lstm import get_data, get_train_data
+from RNN_data_process import get_data, get_train_data
 
 
 def get_rnn(images, input_size, num_classes):
