@@ -39,13 +39,13 @@ def run_inference(rnn_model,images, out_file, labels, model_file, sess, batch_no
     bottle_num = sess.run(before_logit,feed_dict = {input_name: images})
     predictions = sess.run(batch_norm2, feed_dict = {bottle_neck_name: bottle_num})
     
-    if (len(data_queue)>=2):
+    if (len(data_queue)>=1):
         data_queue.popleft()
     data_queue.append(predictions)
     input_for_rnn = np.array(list(data_queue))
     
     
-    if (len(data_queue) < 2):
+    if (len(data_queue) < 1):
         predictions= sess.run(softmax, feed_dict = {bottle_neck_name: bottle_num})
         predictions = np.squeeze(predictions)
         top_k = predictions.argsort()[-k:][::-1]  # Getting top k predictions
