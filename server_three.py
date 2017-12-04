@@ -15,7 +15,7 @@ charpre='p'
 accelerate=0
 
 # set parameters for load CNN model
-save_model_file = './model_file/inception_resnet_v2_for3'
+save_model_file = './model_file/inception_resnet_v2_for4'
 softmax_tensor_name = "my_fine_tune/logits/BiasAdd:0"
 input_name = "Placeholder:0"
 bottle_neck_name = "Placeholder_2:0"
@@ -26,7 +26,7 @@ batch_norm2_name = "my_fine_tune/batch_norm2/batchnorm/add_1:0"
 seq_length = 2
 input_length = 128 #look at the data and figure this out!
 num_classes = 3
-model_path = './model_file/checkpoints/rnn.tflearn'
+model_path = './model_file/checkpoints/RNN_data4/RNN_data4'
 
 data_queue = deque()
 
